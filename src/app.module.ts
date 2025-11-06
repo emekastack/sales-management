@@ -5,7 +5,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 
 @Module({
-  imports: [AuthModule],
+  imports: [MongooseModule.forRoot(process.env.MONGODB_URI!), AuthModule],
   controllers: [AppController],
   providers: [AppService],
 })
