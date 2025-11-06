@@ -1,15 +1,23 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { SalesService } from './sales.service';
-import { CreateSaleDto } from './dto/create-sale.dto';
-import { UpdateSaleDto } from './dto/update-sale.dto';
-
+import { CreateSaleDto } from './dto/sale.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 @Controller('sales')
+@UseGuards(JwtAuthGuard)
 export class SalesController {
-  constructor(private readonly salesService: SalesService) {}
+  constructor(private salesService: SalesService) {}
 
   @Post()
-  create(@Body() createSaleDto: CreateSaleDto) {
-    return this.salesService.create(createSaleDto);
+  create(@Body() createSaleDto: CreateSaleDto, @Request() req) {
+    return this.salesService.create(createSaleDto, req.user._id);
   }
 
   @Get()
@@ -17,18 +25,13 @@ export class SalesController {
     return this.salesService.findAll();
   }
 
+  @Get('report')
+  getReport() {
+    return this.salesService.getSalesReport();
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.salesService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateSaleDto: UpdateSaleDto) {
-    return this.salesService.update(+id, updateSaleDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.salesService.remove(+id);
+    return this.salesService.findOne(id);
   }
 }
