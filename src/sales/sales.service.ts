@@ -2,7 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Sale } from './schemas/sale.schema';
-import { CreateSaleDto } from './dto/sale.dto';
+import { CreateSaleDto, QuerySaleDto } from './dto/sale.dto';
 import { ProductsService } from '../products/products.service';
 
 @Injectable()
@@ -43,17 +43,37 @@ export class SalesService {
     return this.saleModel
       .findById(sale._id)
       .populate('productId', 'name description')
-      .populate('soldBy', 'name email')
+      .populate('soldBy', 'email')
       .exec();
   }
 
-  async findAll() {
-    return this.saleModel
-      .find()
-      .populate('productId', 'name description')
-      .populate('soldBy', 'name email')
-      .sort({ createdAt: -1 })
-      .exec();
+  async findAll(query: QuerySaleDto) {
+    const { page = 1, limit = 10 } = query;
+    const skip = (page - 1) * limit;
+
+    const [sales, total] = await Promise.all([
+      this.saleModel
+        .find()
+        .populate('productId', 'name description')
+        .sort({ createdAt: -1 })
+        .select(
+          'productId:name productId:description quantity unitPrice totalPrice createdAt',
+        )
+        .skip(skip)
+        .limit(limit)
+        .exec(),
+      this.saleModel.countDocuments().exec(),
+    ]);
+
+    return {
+      data: sales,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async findOne(id: string) {

@@ -4,11 +4,12 @@ import {
   Post,
   Body,
   Param,
+  Query,
   UseGuards,
   Request,
 } from '@nestjs/common';
 import { SalesService } from './sales.service';
-import { CreateSaleDto } from './dto/sale.dto';
+import { CreateSaleDto, QuerySaleDto } from './dto/sale.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 @Controller('sales')
 @UseGuards(JwtAuthGuard)
@@ -21,8 +22,8 @@ export class SalesController {
   }
 
   @Get()
-  findAll() {
-    return this.salesService.findAll();
+  findAll(@Query() query: QuerySaleDto) {
+    return this.salesService.findAll(query);
   }
 
   @Get('report')
