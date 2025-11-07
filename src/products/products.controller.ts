@@ -6,10 +6,15 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ProductsService } from './products.service';
-import { CreateProductDto, UpdateProductDto } from './dto/product.dto';
+import {
+  CreateProductDto,
+  UpdateProductDto,
+  QueryProductDto,
+} from './dto/product.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('products')
@@ -23,13 +28,11 @@ export class ProductsController {
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard)
-  findAll() {
-    return this.productsService.findAll();
+  findAll(@Query() query: QueryProductDto) {
+    return this.productsService.findAll(query);
   }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard)
   findOne(@Param('id') id: string) {
     return this.productsService.findOne(id);
   }
@@ -44,11 +47,5 @@ export class ProductsController {
   @UseGuards(JwtAuthGuard)
   delete(@Param('id') id: string) {
     return this.productsService.delete(id);
-  }
-
-  @Put(':id/stock')
-  @UseGuards(JwtAuthGuard)
-  updateStock(@Param('id') id: string, @Body('quantity') quantity: number) {
-    return this.productsService.updateStock(id, quantity);
   }
 }

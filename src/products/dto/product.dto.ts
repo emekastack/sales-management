@@ -4,8 +4,10 @@ import {
   IsNumber,
   Min,
   IsOptional,
-  IsEnum,
+  IsInt,
+  Max,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateProductDto {
   @IsString()
@@ -43,8 +45,19 @@ export class UpdateProductDto {
   @Min(0)
   @IsOptional()
   stock?: number;
+}
 
-  @IsEnum(['active', 'inactive'])
+export class QueryProductDto {
   @IsOptional()
-  status?: string;
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number = 1;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number = 10;
 }

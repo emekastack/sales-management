@@ -6,7 +6,11 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Product } from './schemas/product.schema';
-import { CreateProductDto, UpdateProductDto } from './dto/product.dto';
+import {
+  CreateProductDto,
+  UpdateProductDto,
+  QueryProductDto,
+} from './dto/product.dto';
 
 @Injectable()
 export class ProductsService {
@@ -19,8 +23,24 @@ export class ProductsService {
     return product;
   }
 
-  async findAll() {
-    return this.productModel.find().exec();
+  async findAll(query: QueryProductDto) {
+    const { page = 1, limit = 10 } = query;
+    const skip = (page - 1) * limit;
+
+    const [products, total] = await Promise.all([
+      this.productModel.find().skip(skip).limit(limit).exec(),
+      this.productModel.countDocuments().exec(),
+    ]);
+
+    return {
+      data: products,
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async findOne(id: string) {
@@ -51,18 +71,32 @@ export class ProductsService {
     return { message: 'Product deleted successfully' };
   }
 
-  async updateStock(id: string, quantity: number) {
-    const product = await this.productModel.findById(id);
+  async updateStock(productId: string, quantity: number) {
+    if (quantity <= 0) {
+      throw new BadRequestException('Quantity must be greater than 0');
+    }
+
+    // Use atomic operation to decrement stock and prevent race conditions
+    // First, verify product exists and has sufficient stock
+    const product = await this.productModel.findById(productId);
     if (!product) {
       throw new NotFoundException('Product not found');
     }
 
     if (product.stock < quantity) {
-      throw new BadRequestException('Insufficient stock');
+      throw new BadRequestException(
+        `Insufficient stock. Available: ${product.stock}, Requested: ${quantity}`,
+      );
     }
 
-    product.stock -= quantity;
-    await product.save();
-    return product;
+    // Atomically decrement stock using $inc operator
+    // This ensures thread-safe updates in concurrent scenarios
+    const updatedProduct = await this.productModel.findByIdAndUpdate(
+      productId,
+      { $inc: { stock: -quantity } },
+      { new: true, runValidators: true },
+    );
+
+    return updatedProduct;
   }
 }
